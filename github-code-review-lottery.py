@@ -34,6 +34,52 @@ reviewers = []
 api_token = ''
 interval_between_checks_in_seconds = 15
 
+class PullRequest(object):
+    def __init__(self, repository, number, author, assignee, labels):
+        self._repository = repository
+        self._number = number
+        self._author = author
+        self._assignee = assignee
+        self._labels = labels
+
+    @property
+    def repository(self):
+        return self._repository
+
+    @property
+    def number(self):
+        return self._number
+
+    @property
+    def author(self):
+        return self._author
+
+    @property
+    def assignee(self):
+        return self._assignee
+
+    @assignee.setter
+    def assignee(self, assignee):
+        self._assignee = assignee
+
+    @property
+    def labels(self):
+        return self._labels
+
+    def update_on_server(self):
+        uri = GITHUB_API_URI + SINGLE_ISSUE_PATH.format(organization_name,
+                                                    self.repository,
+                                                    self.number)
+        data_to_send = {}
+        r = requests.patch(uri, auth = (api_token, 'x-oauth-basic'),
+                           data = json.dumps({'assignee': self.assignee}))
+        return r.status_code == 200
+
+    def is_assigned(self):
+        return self._assignee is not None
+
+
+
 def fetch_opened_pull_requests(repository):
     uri = GITHUB_API_URI + ISSUES_PATH.format(organization_name, repository)
     r = requests.get(uri, auth = (api_token, 'x-oauth-basic'))
@@ -41,28 +87,18 @@ def fetch_opened_pull_requests(repository):
         print("Something went wrong", r.status_code)
         return []
     labels_filler = lambda label: label['name']
-    issues_filler = lambda issue: {'repository': repository,
-                                    'number': issue['number'],
-                                    'author': issue['user']['login'],
-                                    'labels': list(map(labels_filler, issue['labels'])),
-                                    'assignee': issue['assignee']['login'] if issue['assignee'] else None}
+    issues_filler = lambda issue: PullRequest(repository, issue['number'], issue['user']['login'],
+                                              issue['assignee']['login'] if issue['assignee'] else None,
+                                              list(map(labels_filler, issue['labels'])))
     filtered_issues = filter(lambda issue: issue['state'] == 'open' and issue['pull_request'], json.loads(r.text))
     return map(issues_filler, filtered_issues)
 
 def pull_requests_to_be_assigned(pull_requests):
-    return filter(lambda pr: pr['assignee'] is None, pull_requests)
-
-def assign_pull_request_to_reviewer(pull_request, reviewer):
-    uri = GITHUB_API_URI + SINGLE_ISSUE_PATH.format(organization_name,
-                                                    pull_request['repository'],
-                                                    pull_request['number'])
-    r = requests.patch(uri, auth = (api_token, 'x-oauth-basic'), data = json.dumps({'assignee': reviewer}))
-    return r.status_code == 200
+    return filter(lambda pr: not pr.is_assigned(), pull_requests)
 
 def reviewer_with_minimum_score(reviewers):
     min_score = -1
     min_reviewers = []
-    print(reviewers)
     for reviewer, score in reviewers.items():
         if score < min_score or min_score == -1:
             min_score, min_reviewers = score, [reviewer]
@@ -77,10 +113,10 @@ def main():
         print("Checking for new pull requests at", time.ctime())
         for repository in repositories:
             for pull_request in pull_requests_to_be_assigned(fetch_opened_pull_requests(repository)):
-                reviewer = reviewer_with_minimum_score(scores)
-                scores[reviewer] += 1
-                assign_result = assign_pull_request_to_reviewer(pull_request, reviewer)
-                print(pull_request['repository'], pull_request['number'], reviewer, assign_result)
+                pull_request.assignee = reviewer_with_minimum_score(scores)
+                scores[pull_request.assignee] += 1
+                assign_result = pull_request.update_on_server()
+                print(pull_request.repository, pull_request.number, pull_request.assignee, assign_result)
         scheduler.enter(interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.enter(interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.run()

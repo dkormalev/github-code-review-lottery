@@ -59,14 +59,26 @@ def assign_pull_request_to_reviewer(pull_request, reviewer):
     r = requests.patch(uri, auth = (api_token, 'x-oauth-basic'), data = json.dumps({'assignee': reviewer}))
     return r.status_code == 200
 
+def reviewer_with_minimum_score(reviewers):
+    min_score = -1
+    min_reviewers = []
+    print(reviewers)
+    for reviewer, score in reviewers.items():
+        if score < min_score or min_score == -1:
+            min_score, min_reviewers = score, [reviewer]
+        elif score == min_score:
+            min_reviewers.append(reviewer)
+    return random.choice(min_reviewers)
 
 def main():
     scheduler = sched.scheduler(time.time, time.sleep)
+    scores = {reviewer: 0 for reviewer in reviewers}
     def check_repositories():
         print("Checking for new pull requests at", time.ctime())
         for repository in repositories:
             for pull_request in pull_requests_to_be_assigned(fetch_opened_pull_requests(repository)):
-                reviewer = random.choice(reviewers)
+                reviewer = reviewer_with_minimum_score(scores)
+                scores[reviewer] += 1
                 assign_result = assign_pull_request_to_reviewer(pull_request, reviewer)
                 print(pull_request['repository'], pull_request['number'], reviewer, assign_result)
         scheduler.enter(interval_between_checks_in_seconds, 1, check_repositories)

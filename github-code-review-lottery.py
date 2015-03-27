@@ -23,6 +23,7 @@ import json
 import random
 import sched
 import time
+import daemon
 from pull_request import PullRequest
 from constants import *
 import config
@@ -68,6 +69,9 @@ def main():
     scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.run()
 
-
 if __name__ == '__main__':
-    main()
+    if config.daemonize:
+        with daemon.DaemonContext():
+            main()
+    else:
+        main()

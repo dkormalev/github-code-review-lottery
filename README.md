@@ -6,6 +6,7 @@ Prereqs
 -------
 * Python3 (I'm using 3.4)
 * requests
+* python-daemon
 
 ToDo
 ----

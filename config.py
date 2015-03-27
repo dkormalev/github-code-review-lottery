@@ -23,3 +23,4 @@ repositories = []
 reviewers = []
 api_token = ''
 interval_between_checks_in_seconds = 15
+daemonize = True

@@ -32,6 +32,7 @@ organization_name = ''
 repositories = []
 reviewers = []
 api_token = ''
+interval_between_checks_in_seconds = 15
 
 def fetch_opened_pull_requests(repository):
     uri = GITHUB_API_URI + ISSUES_PATH.format(organization_name, repository)
@@ -62,14 +63,14 @@ def assign_pull_request_to_reviewer(pull_request, reviewer):
 def main():
     scheduler = sched.scheduler(time.time, time.sleep)
     def check_repositories():
-        print("Checking for new pull requests at", time.time())
+        print("Checking for new pull requests at", time.ctime())
         for repository in repositories:
             for pull_request in pull_requests_to_be_assigned(fetch_opened_pull_requests(repository)):
                 reviewer = random.choice(reviewers)
                 assign_result = assign_pull_request_to_reviewer(pull_request, reviewer)
                 print(pull_request['repository'], pull_request['number'], reviewer, assign_result)
-        scheduler.enter(60, 1, check_repositories)
-    scheduler.enter(60, 1, check_repositories)
+        scheduler.enter(interval_between_checks_in_seconds, 1, check_repositories)
+    scheduler.enter(interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.run()
 
 

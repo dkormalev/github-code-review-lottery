@@ -23,66 +23,13 @@ import json
 import random
 import sched
 import time
-
-GITHUB_API_URI = 'https://api.github.com'
-ISSUES_PATH = '/repos/{}/{}/issues'
-SINGLE_ISSUE_PATH= '/repos/{}/{}/issues/{}'
-
-organization_name = ''
-repositories = []
-reviewers = []
-api_token = ''
-interval_between_checks_in_seconds = 15
-
-class PullRequest(object):
-    def __init__(self, repository, number, author, assignee, labels):
-        self._repository = repository
-        self._number = number
-        self._author = author
-        self._assignee = assignee
-        self._labels = labels
-
-    @property
-    def repository(self):
-        return self._repository
-
-    @property
-    def number(self):
-        return self._number
-
-    @property
-    def author(self):
-        return self._author
-
-    @property
-    def assignee(self):
-        return self._assignee
-
-    @assignee.setter
-    def assignee(self, assignee):
-        self._assignee = assignee
-
-    @property
-    def labels(self):
-        return self._labels
-
-    def update_on_server(self):
-        uri = GITHUB_API_URI + SINGLE_ISSUE_PATH.format(organization_name,
-                                                    self.repository,
-                                                    self.number)
-        data_to_send = {}
-        r = requests.patch(uri, auth = (api_token, 'x-oauth-basic'),
-                           data = json.dumps({'assignee': self.assignee}))
-        return r.status_code == 200
-
-    def is_assigned(self):
-        return self._assignee is not None
-
-
+from pull_request import PullRequest
+from constants import *
+import config
 
 def fetch_opened_pull_requests(repository):
-    uri = GITHUB_API_URI + ISSUES_PATH.format(organization_name, repository)
-    r = requests.get(uri, auth = (api_token, 'x-oauth-basic'))
+    uri = GITHUB_API_URI + ISSUES_PATH.format(config.organization_name, repository)
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
     if r.status_code != 200:
         print("Something went wrong", r.status_code)
         return []
@@ -108,17 +55,17 @@ def reviewer_with_minimum_score(reviewers):
 
 def main():
     scheduler = sched.scheduler(time.time, time.sleep)
-    scores = {reviewer: 0 for reviewer in reviewers}
+    scores = {reviewer: 0 for reviewer in config.reviewers}
     def check_repositories():
         print("Checking for new pull requests at", time.ctime())
-        for repository in repositories:
+        for repository in config.repositories:
             for pull_request in pull_requests_to_be_assigned(fetch_opened_pull_requests(repository)):
                 pull_request.assignee = reviewer_with_minimum_score(scores)
                 scores[pull_request.assignee] += 1
                 assign_result = pull_request.update_on_server()
                 print(pull_request.repository, pull_request.number, pull_request.assignee, assign_result)
-        scheduler.enter(interval_between_checks_in_seconds, 1, check_repositories)
-    scheduler.enter(interval_between_checks_in_seconds, 1, check_repositories)
+        scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
+    scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.run()
 
 

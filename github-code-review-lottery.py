@@ -35,15 +35,20 @@ def init_stuff():
             return False
     return True
 
-def reviewer_with_minimum_score(reviewers):
+def reviewer_with_minimum_score(reviewers, author):
     min_score = -1
     min_reviewers = []
     for reviewer, score in reviewers.items():
+        if reviewer == author:
+            continue
         if score < min_score or min_score == -1:
             min_score, min_reviewers = score, [reviewer]
         elif score == min_score:
             min_reviewers.append(reviewer)
-    return random.choice(min_reviewers)
+    if len(min_reviewers) == 0:
+        return random.choice(list(reviewers.keys()))
+    else:
+        return random.choice(min_reviewers)
 
 def main():
     if not init_stuff():
@@ -57,7 +62,7 @@ def main():
         for repository in config.repositories:
             for issue in issues.issues_to_be_assigned(issues.fetch_opened_pull_requests(repository)):
                 if issue.assignee is None:
-                    issue.assignee = reviewer_with_minimum_score(scores)
+                    issue.assignee = reviewer_with_minimum_score(scores, issue.author)
                     scores[issue.assignee] += 1
                 issue.add_in_review_label()
                 assign_result = issue.update_on_server()

@@ -28,6 +28,7 @@ import daemon
 import issues
 import config
 import labels
+import comments
 
 def init_stuff():
     for repository in config.repositories:
@@ -57,17 +58,28 @@ def main():
 
     scheduler = sched.scheduler(time.time, time.sleep)
     scores = {reviewer: 0 for reviewer in config.reviewers}
+
     def check_repositories():
         print("Checking for new pull requests at", time.ctime())
         for repository in config.repositories:
-            for issue in issues.issues_to_be_assigned(issues.fetch_opened_pull_requests(repository)):
+            all_issues = list(issues.fetch_opened_pull_requests(repository))
+
+            for issue in issues.issues_to_be_assigned(all_issues):
                 if issue.assignee is None:
                     issue.assignee = reviewer_with_minimum_score(scores, issue.author)
                     scores[issue.assignee] += 1
                 issue.add_in_review_label()
-                assign_result = issue.update_on_server()
-                print(issue.repository, issue.number, issue.assignee, assign_result)
+                update_result = issue.update_on_server()
+                print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
+
+            for issue in issues.issues_to_be_checked_for_completed_review(all_issues):
+                if comments.issue_contains_review_done_comment(issue):
+                    issue.add_reviewed_label()
+                    update_result = issue.update_on_server()
+                    print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
+
         scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
+
     scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.run()
 

@@ -18,12 +18,21 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-GITHUB_API_URI = 'https://api.github.com'
-ISSUES_PATH = '/repos/{}/{}/issues'
-SINGLE_ISSUE_PATH= '/repos/{}/{}/issues/{}'
-LABELS_PATH = '/repos/{}/{}/labels'
-COMMENTS_PATH = '/repos/{}/{}/issues/{}/comments'
+import requests
+import json
+from constants import *
+import config
 
-IN_REVIEW_LABEL = "In Review"
-REVIEWED_LABEL = "Reviewed"
-REVIEW_DONE_COMMENT = "+1"
+def issue_contains_review_done_comment(issue):
+    if issue.comments_count == 0:
+        return False
+    uri = GITHUB_API_URI + COMMENTS_PATH.format(config.organization_name, issue.repository, issue.number)
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+    if r.status_code != 200:
+        print("Something went wrong", r.status_code)
+        return False
+    for comment in json.loads(r.text):
+        if comment['user']['login'] == issue.assignee and comment['body'].strip() == REVIEW_DONE_COMMENT:
+            return True
+    return False
+

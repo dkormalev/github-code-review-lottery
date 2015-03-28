@@ -103,3 +103,6 @@ def fetch_opened_pull_requests(repository):
 
 def issues_to_be_assigned(issues):
     return filter(lambda i: not i.contains_review_related_labels(), issues)
+
+def issues_to_be_checked_for_completed_review(issues):
+    return filter(lambda i: i.contains_in_review_label() and i.comments_count != 0, issues)

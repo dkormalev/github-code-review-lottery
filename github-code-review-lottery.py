@@ -27,6 +27,13 @@ import daemon
 
 import issues
 import config
+import labels
+
+def init_stuff():
+    for repository in config.repositories:
+        if not labels.create_labels_if_needed(repository):
+            return False
+    return True
 
 def reviewer_with_minimum_score(reviewers):
     min_score = -1
@@ -39,14 +46,20 @@ def reviewer_with_minimum_score(reviewers):
     return random.choice(min_reviewers)
 
 def main():
+    if not init_stuff():
+        print("Can't init script, exiting now")
+        return
+
     scheduler = sched.scheduler(time.time, time.sleep)
     scores = {reviewer: 0 for reviewer in config.reviewers}
     def check_repositories():
         print("Checking for new pull requests at", time.ctime())
         for repository in config.repositories:
             for issue in issues.issues_to_be_assigned(issues.fetch_opened_pull_requests(repository)):
-                issue.assignee = reviewer_with_minimum_score(scores)
-                scores[issue.assignee] += 1
+                if issue.assignee is None:
+                    issue.assignee = reviewer_with_minimum_score(scores)
+                    scores[issue.assignee] += 1
+                issue.add_in_review_label()
                 assign_result = issue.update_on_server()
                 print(issue.repository, issue.number, issue.assignee, assign_result)
         scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)

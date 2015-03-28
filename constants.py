@@ -21,3 +21,7 @@
 GITHUB_API_URI = 'https://api.github.com'
 ISSUES_PATH = '/repos/{}/{}/issues'
 SINGLE_ISSUE_PATH= '/repos/{}/{}/issues/{}'
+LABELS_PATH = '/repos/{}/{}/labels'
+
+IN_REVIEW_LABEL = "In Review"
+REVIEWED_LABEL = "Reviewed"

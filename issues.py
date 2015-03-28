@@ -27,7 +27,7 @@ class Issue(object):
     def __init__(self, repository, issue_json):
         self._repository = repository
         self._issue_json = issue_json
-        self._labels = filter(lambda l: l['name'], issue_json['labels'])
+        self._labels = set(map(lambda l: l['name'], issue_json['labels']))
         self._assignee = issue_json['assignee']['login'] if issue_json['assignee'] else None
 
     @property
@@ -58,13 +58,32 @@ class Issue(object):
     def comments_count(self):
         return self._issue_json['comments']
 
+    def contains_in_review_label(self):
+        return IN_REVIEW_LABEL in self._labels
+
+    def contains_reviewed_label(self):
+        return REVIEWED_LABEL in self._labels
+
+    def contains_review_related_labels(self):
+        return self.contains_in_review_label() or self.contains_reviewed_label()
+
+    def add_in_review_label(self):
+        if self.contains_reviewed_label():
+            self._labels.remove(REVIEWED_LABEL)
+        self._labels.add(IN_REVIEW_LABEL)
+
+    def add_reviewed_label(self):
+        if self.contains_in_review_label():
+            self._labels.remove(IN_REVIEW_LABEL)
+        self._labels.add(REVIEWED_LABEL)
+
     def update_on_server(self):
         uri = GITHUB_API_URI + SINGLE_ISSUE_PATH.format(config.organization_name,
                                                     self.repository,
                                                     self.number)
-        data_to_send = {}
         r = requests.patch(uri, auth = (config.api_token, 'x-oauth-basic'),
-                           data = json.dumps({'assignee': self.assignee}))
+                           data = json.dumps({'assignee': self.assignee,
+                                             'labels': list(self.labels)}))
         return r.status_code == 200
 
     def is_assigned(self):
@@ -83,4 +102,4 @@ def fetch_opened_pull_requests(repository):
     return map(issues_filler, filtered_issues)
 
 def issues_to_be_assigned(issues):
-    return filter(lambda i: not i.is_assigned(), issues)
+    return filter(lambda i: not i.contains_review_related_labels(), issues)

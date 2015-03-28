@@ -24,25 +24,9 @@ import random
 import sched
 import time
 import daemon
-from pull_request import PullRequest
-from constants import *
+
+import issues
 import config
-
-def fetch_opened_pull_requests(repository):
-    uri = GITHUB_API_URI + ISSUES_PATH.format(config.organization_name, repository)
-    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
-    if r.status_code != 200:
-        print("Something went wrong", r.status_code)
-        return []
-    labels_filler = lambda label: label['name']
-    issues_filler = lambda issue: PullRequest(repository, issue['number'], issue['user']['login'],
-                                              issue['assignee']['login'] if issue['assignee'] else None,
-                                              list(map(labels_filler, issue['labels'])))
-    filtered_issues = filter(lambda issue: issue['state'] == 'open' and issue['pull_request'], json.loads(r.text))
-    return map(issues_filler, filtered_issues)
-
-def pull_requests_to_be_assigned(pull_requests):
-    return filter(lambda pr: not pr.is_assigned(), pull_requests)
 
 def reviewer_with_minimum_score(reviewers):
     min_score = -1
@@ -60,11 +44,11 @@ def main():
     def check_repositories():
         print("Checking for new pull requests at", time.ctime())
         for repository in config.repositories:
-            for pull_request in pull_requests_to_be_assigned(fetch_opened_pull_requests(repository)):
-                pull_request.assignee = reviewer_with_minimum_score(scores)
-                scores[pull_request.assignee] += 1
-                assign_result = pull_request.update_on_server()
-                print(pull_request.repository, pull_request.number, pull_request.assignee, assign_result)
+            for issue in issues.issues_to_be_assigned(issues.fetch_opened_pull_requests(repository)):
+                issue.assignee = reviewer_with_minimum_score(scores)
+                scores[issue.assignee] += 1
+                assign_result = issue.update_on_server()
+                print(issue.repository, issue.number, issue.assignee, assign_result)
         scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
     scheduler.run()

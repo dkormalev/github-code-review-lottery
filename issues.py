@@ -23,13 +23,12 @@ import json
 from constants import *
 import config
 
-class PullRequest(object):
-    def __init__(self, repository, number, author, assignee, labels):
+class Issue(object):
+    def __init__(self, repository, issue_json):
         self._repository = repository
-        self._number = number
-        self._author = author
-        self._assignee = assignee
-        self._labels = labels
+        self._issue_json = issue_json
+        self._labels = filter(lambda l: l['name'], issue_json['labels'])
+        self._assignee = issue_json['assignee']['login'] if issue_json['assignee'] else None
 
     @property
     def repository(self):
@@ -37,11 +36,11 @@ class PullRequest(object):
 
     @property
     def number(self):
-        return self._number
+        return self._issue_json['number']
 
     @property
     def author(self):
-        return self._author
+        return self._issue_json['user']['login']
 
     @property
     def assignee(self):
@@ -55,6 +54,10 @@ class PullRequest(object):
     def labels(self):
         return self._labels
 
+    @property
+    def comments_count(self):
+        return self._issue_json['comments']
+
     def update_on_server(self):
         uri = GITHUB_API_URI + SINGLE_ISSUE_PATH.format(config.organization_name,
                                                     self.repository,
@@ -65,4 +68,19 @@ class PullRequest(object):
         return r.status_code == 200
 
     def is_assigned(self):
-        return self._assignee is not None
+        return self.assignee is not None
+
+
+def fetch_opened_pull_requests(repository):
+    uri = GITHUB_API_URI + ISSUES_PATH.format(config.organization_name, repository)
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+    if r.status_code != 200:
+        print("Something went wrong", r.status_code)
+        return []
+    labels_filler = lambda label: label['name']
+    issues_filler = lambda issue: Issue(repository = repository, issue_json = issue)
+    filtered_issues = filter(lambda issue: issue['state'] == 'open' and issue['pull_request'], json.loads(r.text))
+    return map(issues_filler, filtered_issues)
+
+def issues_to_be_assigned(issues):
+    return filter(lambda i: not i.is_assigned(), issues)

@@ -19,7 +19,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 GITHUB_API_URI = 'https://api.github.com'
-ISSUES_PATH = '/repos/{}/issues'
+ISSUES_PATH = '/issues?filter=subscribed'
 SINGLE_ISSUE_PATH= '/repos/{}/issues/{}'
 LABELS_PATH = '/repos/{}/labels'
 COMMENTS_PATH = '/repos/{}/issues/{}/comments'
@@ -29,6 +29,7 @@ USER_TEAMS_PATH = '/user/teams'
 TEAM_MEMBERS_PATH = '/teams/{}/members'
 TEAM_REPOS_PATH = '/teams/{}/repos'
 
+REPO_TEAMS_PATH = '/repos/{}/teams'
 
 IN_REVIEW_LABEL = "In Review"
 REVIEWED_LABEL = "Reviewed"

@@ -22,17 +22,17 @@ import requests
 import json
 from constants import *
 import config
+import repositories
 
 class Issue(object):
-    def __init__(self, repository, issue_json):
-        self._repository = repository
+    def __init__(self, issue_json):
         self._issue_json = issue_json
         self._labels = set(map(lambda l: l['name'], issue_json['labels']))
         self._assignee = issue_json['assignee']['login'] if issue_json['assignee'] else None
 
     @property
     def repository(self):
-        return self._repository
+        return self._issue_json['repository']['full_name']
 
     @property
     def number(self):
@@ -88,19 +88,25 @@ class Issue(object):
         return self.assignee is not None
 
 
-def fetch_opened_pull_requests(repository):
-    uri = GITHUB_API_URI + ISSUES_PATH.format(repository)
+def fetch_opened_pull_requests():
+    uri = GITHUB_API_URI + ISSUES_PATH.format()
     r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
     if r.status_code != 200:
         print("Something went wrong", r.status_code)
         return []
-    labels_filler = lambda label: label['name']
-    issues_filler = lambda issue: Issue(repository = repository, issue_json = issue)
-    filtered_issues = filter(lambda issue: issue['state'] == 'open' and issue['pull_request'], json.loads(r.text))
+    issues_filler = lambda issue: Issue(issue)
+    filtered_issues = filter(lambda issue: issue['state'] == 'open'
+                                            and issue['pull_request']
+                                            and not issue['repository']['fork'],
+                             json.loads(r.text))
     return map(issues_filler, filtered_issues)
 
-def issues_to_be_assigned(issues):
+def filter_issues_for_team(issues, team):
+    print(team)
+    return filter(lambda i: team in repositories.repository_teams(i.repository), issues)
+
+def filter_issues_to_be_assigned(issues):
     return filter(lambda i: not i.contains_review_related_labels(), issues)
 
-def issues_to_be_checked_for_completed_review(issues):
+def filter_issues_to_be_checked_for_completed_review(issues):
     return filter(lambda i: i.contains_in_review_label() and i.comments_count != 0, issues)

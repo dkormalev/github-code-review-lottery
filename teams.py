@@ -36,8 +36,8 @@ def find_team_by_name(team_name):
     return None
 
 def team_members(team_id):
-    labels_uri = GITHUB_API_URI + TEAM_MEMBERS_PATH.format(team_id)
-    r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'))
+    uri = GITHUB_API_URI + TEAM_MEMBERS_PATH.format(team_id)
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
     if r.status_code != 200:
         print("Something went wrong", r.status_code)
         return None
@@ -45,9 +45,11 @@ def team_members(team_id):
     return map(lambda u: u['login'], filter(lambda u: u['login'] != current_user, json.loads(r.text)))
 
 def team_repositories(team_id):
-    labels_uri = GITHUB_API_URI + TEAM_REPOS_PATH.format(team_id)
-    r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'))
+    uri = GITHUB_API_URI + TEAM_REPOS_PATH.format(team_id)
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
     if r.status_code != 200:
         print("Something went wrong", r.status_code)
         return None
     return map(lambda r: r['full_name'], filter(lambda r: not r['fork'], json.loads(r.text)))
+
+

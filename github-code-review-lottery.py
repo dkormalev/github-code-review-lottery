@@ -30,24 +30,23 @@ import config
 import labels
 import comments
 import teams
+import repositories
 
 reviewers = []
-repositories = []
 
 def init_stuff():
     global reviewers
-    global repositories
 
     team_id = teams.find_team_by_name(config.team)
     if team_id is None:
         return False
 
     reviewers = list(teams.team_members(team_id))
-    repositories = list(teams.team_repositories(team_id))
-    print(reviewers, repositories)
+    repositories_list = list(teams.team_repositories(team_id))
+    print(reviewers, repositories_list)
 
-    for repository in repositories:
-        if not labels.create_labels_if_needed(repository):
+    for repository in repositories_list:
+        if not repositories.init_repository(repository):
             return False
     return True
 
@@ -76,22 +75,23 @@ def main():
 
     def check_repositories():
         print("Checking for new pull requests at", time.ctime())
-        for repository in repositories:
-            all_issues = list(issues.fetch_opened_pull_requests(repository))
+        all_issues = issues.fetch_opened_pull_requests()
+        all_issues = list(issues.filter_issues_for_team(all_issues, config.team))
+        print (list(map(lambda i: (i.repository, i.number) , all_issues)))
 
-            for issue in issues.issues_to_be_assigned(all_issues):
-                if issue.assignee is None:
-                    issue.assignee = reviewer_with_minimum_score(scores, issue.author)
-                    scores[issue.assignee] += 1
-                issue.add_in_review_label()
+        for issue in issues.filter_issues_to_be_assigned(all_issues):
+            if issue.assignee is None:
+                issue.assignee = reviewer_with_minimum_score(scores, issue.author)
+                scores[issue.assignee] += 1
+            issue.add_in_review_label()
+            update_result = issue.update_on_server()
+            print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
+
+        for issue in issues.filter_issues_to_be_checked_for_completed_review(all_issues):
+            if comments.issue_contains_review_done_comment(issue):
+                issue.add_reviewed_label()
                 update_result = issue.update_on_server()
-                print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
-
-            for issue in issues.issues_to_be_checked_for_completed_review(all_issues):
-                if comments.issue_contains_review_done_comment(issue):
-                    issue.add_reviewed_label()
-                    update_result = issue.update_on_server()
-                    print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
+                print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
 
         if not config.single_shot:
             scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)

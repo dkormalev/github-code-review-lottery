@@ -69,11 +69,12 @@ def main():
     if not init_stuff():
         print("Can't init script, exiting now")
         return
+    print("Init done, starting lottery")
 
     scheduler = sched.scheduler(time.time, time.sleep)
     scores = {reviewer: 0 for reviewer in reviewers}
 
-    def check_repositories():
+    def check_for_new_issues():
         print("Checking for new pull requests at", time.ctime())
         all_issues = issues.fetch_opened_pull_requests()
         all_issues = list(issues.filter_issues_for_team(all_issues, config.team))
@@ -94,12 +95,10 @@ def main():
                 print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
 
         if not config.single_shot:
-            scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
+            scheduler.enter(config.interval_between_checks_in_seconds, 1, check_for_new_issues)
 
-    if config.single_shot:
-        check_repositories()
-    else:
-        scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
+    check_for_new_issues()
+    if not config.single_shot:
         scheduler.run()
 
 if __name__ == '__main__':

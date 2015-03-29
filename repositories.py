@@ -46,7 +46,6 @@ class Repository(object):
         uri = GITHUB_API_URI + REPO_TEAMS_PATH.format(self._name)
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'),
                          headers = {'If-None-Match': self._teams_etag})
-        print("teams for", self._name, ":", self._teams_etag, r.status_code)
         if r.status_code != 200 and r.status_code != 304:
             self._teams_etag = ''
             self._teams = []
@@ -71,5 +70,4 @@ def repository_teams(repository):
         repositories[repository].update_teams()
     else:
         init_repository(repository)
-    print (repositories[repository].teams)
     return repositories[repository].teams

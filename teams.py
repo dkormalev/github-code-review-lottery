@@ -23,33 +23,47 @@ import json
 from constants import *
 import config
 import users
+import utils
 
 def find_team_by_name(team_name):
     uri = GITHUB_API_URI + USER_TEAMS_PATH
-    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
-    if r.status_code != 200:
-        print("Something went wrong", r.status_code)
-        return None
-    for team in json.loads(r.text):
-        if team_name == team['name']:
-            return team['id']
+    while uri is not None:
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        if r.status_code != 200:
+            print("Something went wrong", r.status_code)
+            return None
+        for team in json.loads(r.text):
+            if team_name == team['name']:
+                return team['id']
+        uri = utils.next_page_url(r)
+
     return None
 
 def team_members(team_id):
     uri = GITHUB_API_URI + TEAM_MEMBERS_PATH.format(team_id)
-    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
-    if r.status_code != 200:
-        print("Something went wrong", r.status_code)
-        return None
+    all_users = []
+    while uri is not None:
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        if r.status_code != 200:
+            print("Something went wrong", r.status_code)
+            return None
+        all_users += json.loads(r.text)
+        uri = utils.next_page_url(r)
+
     current_user = users.current_user_name()
-    return map(lambda u: u['login'], filter(lambda u: u['login'] != current_user, json.loads(r.text)))
+    return map(lambda u: u['login'], filter(lambda u: u['login'] != current_user, all_users))
 
 def team_repositories(team_id):
     uri = GITHUB_API_URI + TEAM_REPOS_PATH.format(team_id)
-    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
-    if r.status_code != 200:
-        print("Something went wrong", r.status_code)
-        return None
-    return map(lambda r: r['full_name'], filter(lambda r: not r['fork'], json.loads(r.text)))
+    all_repos = []
+    while uri is not None:
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        if r.status_code != 200:
+            print("Something went wrong", r.status_code)
+            return None
+        all_repos += json.loads(r.text)
+        uri = utils.next_page_url(r)
+
+    return map(lambda r: r['full_name'], filter(lambda r: not r['fork'], all_repos))
 
 

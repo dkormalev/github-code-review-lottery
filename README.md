@@ -10,10 +10,9 @@ Prereqs
 
 ToDo
 ----
-* teams usage to determine repos and reviewers lists
-* configparser instead of .py file
 * sqlite db to store reviewers scores between runs
 * git statistics usage to select proper reviewer
+* consider configparser instead of .py file
 
 Disclaimer
 ----------

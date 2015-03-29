@@ -22,17 +22,24 @@ import requests
 import json
 from constants import *
 import config
+import utils
 
 def create_labels_if_needed(repository):
     labels_uri = GITHUB_API_URI + LABELS_PATH.format(repository)
-    r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'))
-    if r.status_code != 200:
-        print("Something went wrong", r.status_code)
-        return False
+    all_labels = []
+    while labels_uri is not None:
+        r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'))
+        if r.status_code != 200:
+            print("Something went wrong", r.status_code)
+            return False
+        all_labels += json.loads(r.text)
+        labels_uri = utils.next_page_url(r)
+
+    labels_uri = GITHUB_API_URI + LABELS_PATH.format(repository)
 
     in_review_label_found = False
     reviewed_label_found = False
-    for label in json.loads(r.text):
+    for label in all_labels:
         label_name = label['name']
         if label_name == IN_REVIEW_LABEL:
             in_review_label_found = True

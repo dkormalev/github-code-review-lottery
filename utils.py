@@ -18,19 +18,11 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-GITHUB_API_URI = 'https://api.github.com'
-ISSUES_PATH = '/issues?filter=subscribed&per_page=100'
-SINGLE_ISSUE_PATH= '/repos/{}/issues/{}'
-LABELS_PATH = '/repos/{}/labels?per_page=100'
-COMMENTS_PATH = '/repos/{}/issues/{}/comments?per_page=100'
+import requests
+import re
 
-USER_PATH = '/user'
-USER_TEAMS_PATH = '/user/teams?per_page=100'
-TEAM_MEMBERS_PATH = '/teams/{}/members?per_page=100'
-TEAM_REPOS_PATH = '/teams/{}/repos?per_page=100'
-
-REPO_TEAMS_PATH = '/repos/{}/teams?per_page=100'
-
-IN_REVIEW_LABEL = "In Review"
-REVIEWED_LABEL = "Reviewed"
-REVIEW_DONE_COMMENT = "+1"
+def next_page_url(response):
+    if response.status_code < 200 or response.status_code >= 300 or "Link" not in response.headers:
+        return None
+    next_link = re.search('<([^>]*)>; rel="next"', response.headers["Link"])
+    return next_link.group(1) if next_link is not None else None

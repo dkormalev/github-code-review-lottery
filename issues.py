@@ -23,6 +23,7 @@ import json
 from constants import *
 import config
 import repositories
+import utils
 
 class Issue(object):
     def __init__(self, issue_json):
@@ -90,19 +91,23 @@ class Issue(object):
 
 def fetch_opened_pull_requests():
     uri = GITHUB_API_URI + ISSUES_PATH.format()
-    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
-    if r.status_code != 200:
-        print("Something went wrong", r.status_code)
-        return []
+    all_issues = []
+    while uri is not None:
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        if r.status_code != 200:
+            print("Something went wrong", r.status_code)
+            return []
+        all_issues += json.loads(r.text)
+        uri = utils.next_page_url(r)
+
     issues_filler = lambda issue: Issue(issue)
     filtered_issues = filter(lambda issue: issue['state'] == 'open'
                                             and issue['pull_request']
                                             and not issue['repository']['fork'],
-                             json.loads(r.text))
+                             all_issues)
     return map(issues_filler, filtered_issues)
 
 def filter_issues_for_team(issues, team):
-    print(team)
     return filter(lambda i: team in repositories.repository_teams(i.repository), issues)
 
 def filter_issues_to_be_assigned(issues):

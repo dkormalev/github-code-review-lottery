@@ -21,4 +21,5 @@
 team = ''
 api_token = ''
 interval_between_checks_in_seconds = 20
-daemonize = True
+daemonize = False
+single_shot = False

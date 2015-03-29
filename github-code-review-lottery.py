@@ -93,13 +93,17 @@ def main():
                     update_result = issue.update_on_server()
                     print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
 
-        scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
+        if not config.single_shot:
+            scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
 
-    scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
-    scheduler.run()
+    if config.single_shot:
+        check_repositories()
+    else:
+        scheduler.enter(config.interval_between_checks_in_seconds, 1, check_repositories)
+        scheduler.run()
 
 if __name__ == '__main__':
-    if config.daemonize:
+    if config.daemonize and not config.single_shot:
         with daemon.DaemonContext():
             main()
     else:

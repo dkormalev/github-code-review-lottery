@@ -78,9 +78,7 @@ class Issue(object):
         self._labels.add(REVIEWED_LABEL)
 
     def update_on_server(self):
-        uri = GITHUB_API_URI + SINGLE_ISSUE_PATH.format(config.organization_name,
-                                                    self.repository,
-                                                    self.number)
+        uri = GITHUB_API_URI + SINGLE_ISSUE_PATH.format(self.repository, self.number)
         r = requests.patch(uri, auth = (config.api_token, 'x-oauth-basic'),
                            data = json.dumps({'assignee': self.assignee,
                                              'labels': list(self.labels)}))
@@ -91,7 +89,7 @@ class Issue(object):
 
 
 def fetch_opened_pull_requests(repository):
-    uri = GITHUB_API_URI + ISSUES_PATH.format(config.organization_name, repository)
+    uri = GITHUB_API_URI + ISSUES_PATH.format(repository)
     r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
     if r.status_code != 200:
         print("Something went wrong", r.status_code)

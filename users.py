@@ -18,18 +18,17 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-GITHUB_API_URI = 'https://api.github.com'
-ISSUES_PATH = '/repos/{}/issues'
-SINGLE_ISSUE_PATH= '/repos/{}/issues/{}'
-LABELS_PATH = '/repos/{}/labels'
-COMMENTS_PATH = '/repos/{}/issues/{}/comments'
+import requests
+import json
+from constants import *
+import config
 
-USER_PATH = '/user'
-USER_TEAMS_PATH = '/user/teams'
-TEAM_MEMBERS_PATH = '/teams/{}/members'
-TEAM_REPOS_PATH = '/teams/{}/repos'
+def current_user_name():
+    uri = GITHUB_API_URI + USER_PATH
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+    if r.status_code != 200:
+        print("Something went wrong", r.status_code)
+        return None
+    user = json.loads(r.text)
+    return user['login'] if user else None
 
-
-IN_REVIEW_LABEL = "In Review"
-REVIEWED_LABEL = "Reviewed"
-REVIEW_DONE_COMMENT = "+1"

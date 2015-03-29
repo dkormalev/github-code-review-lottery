@@ -22,39 +22,32 @@ import requests
 import json
 from constants import *
 import config
+import users
 
-def create_labels_if_needed(repository):
-    labels_uri = GITHUB_API_URI + LABELS_PATH.format(repository)
+def find_team_by_name(team_name):
+    uri = GITHUB_API_URI + USER_TEAMS_PATH
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+    if r.status_code != 200:
+        print("Something went wrong", r.status_code)
+        return None
+    for team in json.loads(r.text):
+        if team_name == team['name']:
+            return team['id']
+    return None
+
+def team_members(team_id):
+    labels_uri = GITHUB_API_URI + TEAM_MEMBERS_PATH.format(team_id)
     r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'))
     if r.status_code != 200:
         print("Something went wrong", r.status_code)
-        return False
+        return None
+    current_user = users.current_user_name()
+    return map(lambda u: u['login'], filter(lambda u: u['login'] != current_user, json.loads(r.text)))
 
-    in_review_label_found = False
-    reviewed_label_found = False
-    for label in json.loads(r.text):
-        label_name = label['name']
-        if label_name == IN_REVIEW_LABEL:
-            in_review_label_found = True
-        elif label_name == REVIEWED_LABEL:
-            reviewed_label_found = True
-        if in_review_label_found and reviewed_label_found:
-            break
-
-    if not in_review_label_found:
-        label_data = {"name": IN_REVIEW_LABEL, "color": "eb6420"}
-        r = requests.post(labels_uri, auth = (config.api_token, 'x-oauth-basic'),
-                          data = json.dumps(label_data))
-        if r.status_code != 201:
-            print("Something went wrong with in review label", r.status_code)
-            return False
-
-    if not reviewed_label_found:
-        label_data = {"name": REVIEWED_LABEL, "color": "00aa00"}
-        r = requests.post(labels_uri, auth = (config.api_token, 'x-oauth-basic'),
-                          data = json.dumps(label_data))
-        if r.status_code != 201:
-            print("Something went wrong with reviewed label", r.status_code)
-            return False
-
-    return True
+def team_repositories(team_id):
+    labels_uri = GITHUB_API_URI + TEAM_REPOS_PATH.format(team_id)
+    r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'))
+    if r.status_code != 200:
+        print("Something went wrong", r.status_code)
+        return None
+    return map(lambda r: r['full_name'], filter(lambda r: not r['fork'], json.loads(r.text)))

@@ -29,9 +29,24 @@ import issues
 import config
 import labels
 import comments
+import teams
+
+reviewers = []
+repositories = []
 
 def init_stuff():
-    for repository in config.repositories:
+    global reviewers
+    global repositories
+
+    team_id = teams.find_team_by_name(config.team)
+    if team_id is None:
+        return False
+
+    reviewers = list(teams.team_members(team_id))
+    repositories = list(teams.team_repositories(team_id))
+    print(reviewers, repositories)
+
+    for repository in repositories:
         if not labels.create_labels_if_needed(repository):
             return False
     return True
@@ -57,11 +72,11 @@ def main():
         return
 
     scheduler = sched.scheduler(time.time, time.sleep)
-    scores = {reviewer: 0 for reviewer in config.reviewers}
+    scores = {reviewer: 0 for reviewer in reviewers}
 
     def check_repositories():
         print("Checking for new pull requests at", time.ctime())
-        for repository in config.repositories:
+        for repository in repositories:
             all_issues = list(issues.fetch_opened_pull_requests(repository))
 
             for issue in issues.issues_to_be_assigned(all_issues):

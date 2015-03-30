@@ -19,7 +19,12 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 team = ''
+uber_team = ''
 api_token = ''
 interval_between_checks_in_seconds = 20
 daemonize = False
 single_shot = False
+only_subscribed_issues = False
+#available modes: random and repo
+lottery_mode = 'repo'
+repo_lottery_factor = 0.5

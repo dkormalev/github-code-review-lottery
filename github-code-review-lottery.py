@@ -20,7 +20,6 @@
 
 import requests
 import json
-import random
 import sched
 import time
 import daemon
@@ -31,39 +30,42 @@ import labels
 import comments
 import teams
 import repositories
+import lottery_modes
 
 reviewers = []
+ubers = []
+reviewer_selector = None
 
 def init_stuff():
     global reviewers
+    global ubers
+    global reviewer_selector
+
+    if config.lottery_mode == 'random':
+        reviewer_selector = lottery_modes.reviewer_random_selector
+    elif config.lottery_mode == 'repo':
+        reviewer_selector = lottery_modes.reviewer_repo_selector
+    else:
+        return False
 
     team_id = teams.find_team_by_name(config.team)
     if team_id is None:
         return False
-
     reviewers = list(teams.team_members(team_id))
     repositories_list = list(teams.team_repositories(team_id))
-    print(reviewers, repositories_list)
+
+    uber_team_id = teams.find_team_by_name(config.uber_team)
+    if uber_team_id is None:
+        return False
+    ubers = list(filter(lambda u: u in reviewers, teams.team_members(uber_team_id)))
+
+    print(reviewers, ubers)
+    print(repositories_list)
 
     for repository in repositories_list:
         if not repositories.init_repository(repository):
             return False
     return True
-
-def reviewer_with_minimum_score(reviewers, author):
-    min_score = -1
-    min_reviewers = []
-    for reviewer, score in reviewers.items():
-        if reviewer == author:
-            continue
-        if score < min_score or min_score == -1:
-            min_score, min_reviewers = score, [reviewer]
-        elif score == min_score:
-            min_reviewers.append(reviewer)
-    if len(min_reviewers) == 0:
-        return random.choice(list(reviewers.keys()))
-    else:
-        return random.choice(min_reviewers)
 
 def main():
     if not init_stuff():
@@ -82,11 +84,11 @@ def main():
 
         for issue in issues.filter_issues_to_be_assigned(all_issues):
             if issue.assignee is None:
-                issue.assignee = reviewer_with_minimum_score(scores, issue.author)
+                issue.assignee = reviewer_selector(scores, ubers, issue)
                 scores[issue.assignee] += 1
             issue.add_in_review_label()
             update_result = issue.update_on_server()
-            print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
+            print("Added for review:", issue.repository, issue.number, issue.assignee)#, update_result)
 
         for issue in issues.filter_issues_to_be_checked_for_completed_review(all_issues):
             if comments.issue_contains_review_done_comment(issue):

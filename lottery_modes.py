@@ -25,7 +25,10 @@ import config
 import issues
 import random
 
-def reviewer_random_selector(reviewers, ubers, issue):
+def _random_selector(reviewers, ubers, all_reviewers, issue):
+    if len(reviewers) == 0:
+        reviewers = {u: all_reviewers[u] for u in ubers}
+
     min_score = -1
     min_reviewers = []
     for reviewer, score in reviewers.items():
@@ -35,13 +38,17 @@ def reviewer_random_selector(reviewers, ubers, issue):
             min_score, min_reviewers = score, [reviewer]
         elif score == min_score:
             min_reviewers.append(reviewer)
+
     if len(min_reviewers) == 0:
-        if len(ubers) == 0:
-            return random.choice(list(reviewers.keys()))
+        if len(ubers) != 0:
+            return reviewer_random_selector({u: all_reviewers[u] for u in ubers}, {}, issue)
         else:
-            return reviewer_random_selector({u: reviewers[u] for u in ubers}, {}, issue)
+            return random.choice(list(reviewers.keys()))
     else:
         return random.choice(min_reviewers)
+
+def reviewer_random_selector(reviewers, ubers, issue):
+    return _random_selector(reviewers, ubers, reviewers, issue)
 
 def reviewer_repo_selector(reviewers, ubers, issue):
     uri = GITHUB_API_URI + REPO_CONTRIBUTORS_PATH.format(issue.repository)
@@ -62,10 +69,5 @@ def reviewer_repo_selector(reviewers, ubers, issue):
             continue
         if contributors[reviewer] >= threshold:
             eligible_reviewers[reviewer] = score
-    result = reviewer_random_selector(eligible_reviewers, ubers, issue)
-    #TODO: add supergroup to get users from there instead of this
-    if result == issue.author:
-        return reviewer_random_selector(reviewers, ubers, issue)
-    else:
-        return result
+    return _random_selector(eligible_reviewers, ubers, reviewers, issue)
 

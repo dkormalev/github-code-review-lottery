@@ -18,74 +18,15 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import requests
-import json
 import sched
 import time
 import daemon
 
 import issues
 import config
-import labels
 import comments
-import teams
-import repositories
-import lottery_modes
 
-class Lottery(object):
-    def __init__(self):
-        self._reviewers = {}
-        self._ubers = []
-        self._reviewer_selector = None
-
-    @property
-    def reviewers(self):
-        return self._reviewers
-
-    @property
-    def ubers(self):
-        return self._ubers
-
-    def select_assignee(self, issue):
-        selected = self._reviewer_selector(self._reviewers, self._ubers, issue)
-        if selected is None:
-            selected = issue.author
-        issue.assignee = selected
-        self._reviewers[issue.assignee] += 1
-
-    def increase_reviewer_score(self, reviewer):
-        if reviewer not in self._reviewers:
-            return
-        self._reviewers[reviewer] += 1
-
-    def read_config(self):
-        if config.lottery_mode == 'random':
-            self._reviewer_selector = lottery_modes.select_reviewer_by_random
-        elif config.lottery_mode == 'repo':
-            self._reviewer_selector = lottery_modes.select_reviewer_by_repo_stats
-        else:
-            return False
-
-        team_id = teams.find_team_by_name(config.team)
-        if team_id is None:
-            return False
-        self._reviewers = {reviewer: 0 for reviewer in teams.team_members(team_id)}
-
-        uber_team_id = teams.find_team_by_name(config.uber_team)
-        if uber_team_id is None:
-            return False
-        self._ubers = list(filter(lambda u: u in self._reviewers, teams.team_members(uber_team_id)))
-
-        repositories_list = list(teams.team_repositories(team_id))
-
-        print(self._reviewers, self._ubers)
-        print(repositories_list)
-
-        for repository in repositories_list:
-            if not repositories.init_repository(repository):
-                return False
-        return True
-
+from lottery import Lottery
 
 def main():
     lottery = Lottery()

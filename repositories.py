@@ -38,10 +38,6 @@ class Repository(object):
     def teams(self):
         return self._teams
 
-    @property
-    def teams_etag(self):
-        return self._teams_etag
-
     def update_teams(self):
         uri = GITHUB_API_URI + REPO_TEAMS_PATH.format(self._name)
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'),

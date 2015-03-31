@@ -32,49 +32,69 @@ import teams
 import repositories
 import lottery_modes
 
-reviewers = []
-ubers = []
-reviewer_selector = None
+class Lottery(object):
+    def __init__(self):
+        self._reviewers = {}
+        self._ubers = []
+        self._reviewer_selector = None
 
-def init_stuff():
-    global reviewers
-    global ubers
-    global reviewer_selector
+    @property
+    def reviewers(self):
+        return self._reviewers
 
-    if config.lottery_mode == 'random':
-        reviewer_selector = lottery_modes.reviewer_random_selector
-    elif config.lottery_mode == 'repo':
-        reviewer_selector = lottery_modes.reviewer_repo_selector
-    else:
-        return False
+    @property
+    def ubers(self):
+        return self._ubers
 
-    team_id = teams.find_team_by_name(config.team)
-    if team_id is None:
-        return False
-    reviewers = list(teams.team_members(team_id))
-    repositories_list = list(teams.team_repositories(team_id))
+    def select_assignee(self, issue):
+        selected = self._reviewer_selector(self._reviewers, self._ubers, issue)
+        if selected is None:
+            selected = issue.author
+        issue.assignee = selected
+        self._reviewers[issue.assignee] += 1
 
-    uber_team_id = teams.find_team_by_name(config.uber_team)
-    if uber_team_id is None:
-        return False
-    ubers = list(filter(lambda u: u in reviewers, teams.team_members(uber_team_id)))
+    def increase_reviewer_score(self, reviewer):
+        if reviewer not in self._reviewers:
+            return
+        self._reviewers[reviewer] += 1
 
-    print(reviewers, ubers)
-    print(repositories_list)
-
-    for repository in repositories_list:
-        if not repositories.init_repository(repository):
+    def read_config(self):
+        if config.lottery_mode == 'random':
+            self._reviewer_selector = lottery_modes.select_reviewer_by_random
+        elif config.lottery_mode == 'repo':
+            self._reviewer_selector = lottery_modes.select_reviewer_by_repo_stats
+        else:
             return False
-    return True
+
+        team_id = teams.find_team_by_name(config.team)
+        if team_id is None:
+            return False
+        self._reviewers = {reviewer: 0 for reviewer in teams.team_members(team_id)}
+
+        uber_team_id = teams.find_team_by_name(config.uber_team)
+        if uber_team_id is None:
+            return False
+        self._ubers = list(filter(lambda u: u in self._reviewers, teams.team_members(uber_team_id)))
+
+        repositories_list = list(teams.team_repositories(team_id))
+
+        print(self._reviewers, self._ubers)
+        print(repositories_list)
+
+        for repository in repositories_list:
+            if not repositories.init_repository(repository):
+                return False
+        return True
+
 
 def main():
-    if not init_stuff():
+    lottery = Lottery()
+    if not lottery.read_config():
         print("Can't init script, exiting now")
         return
     print("Init done, starting lottery")
 
     scheduler = sched.scheduler(time.time, time.sleep)
-    scores = {reviewer: 0 for reviewer in reviewers}
 
     def check_for_new_issues():
         print("Checking for new pull requests at", time.ctime())
@@ -84,11 +104,12 @@ def main():
 
         for issue in issues.filter_issues_to_be_assigned(all_issues):
             if issue.assignee is None:
-                issue.assignee = reviewer_selector(scores, ubers, issue)
-                scores[issue.assignee] += 1
+                lottery.select_assignee(issue)
+            else:
+                lottery.increase_reviewer_score(issue.assignee)
             issue.add_in_review_label()
             update_result = issue.update_on_server()
-            print("Added for review:", issue.repository, issue.number, issue.assignee)#, update_result)
+            print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
 
         for issue in issues.filter_issues_to_be_checked_for_completed_review(all_issues):
             if comments.issue_contains_review_done_comment(issue):

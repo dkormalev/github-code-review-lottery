@@ -25,10 +25,10 @@ import config
 import issues
 import random
 
-def _random_selector(reviewers, ubers, all_reviewers, issue):
+def _random_selector(reviewers, issue):
+    print("_random_selector", reviewers, issue.author)
     if len(reviewers) == 0:
-        reviewers = {u: all_reviewers[u] for u in ubers}
-
+        return None
     min_score = -1
     min_reviewers = []
     for reviewer, score in reviewers.items():
@@ -38,36 +38,47 @@ def _random_selector(reviewers, ubers, all_reviewers, issue):
             min_score, min_reviewers = score, [reviewer]
         elif score == min_score:
             min_reviewers.append(reviewer)
-
+    print("_random_selector 2", min_reviewers)
     if len(min_reviewers) == 0:
-        if len(ubers) != 0:
-            return reviewer_random_selector({u: all_reviewers[u] for u in ubers}, {}, issue)
-        else:
-            return random.choice(list(reviewers.keys()))
-    else:
-        return random.choice(min_reviewers)
+        return None
+    return random.choice(min_reviewers)
 
-def reviewer_random_selector(reviewers, ubers, issue):
-    return _random_selector(reviewers, ubers, reviewers, issue)
 
-def reviewer_repo_selector(reviewers, ubers, issue):
+def select_reviewer_by_random(reviewers, ubers, issue):
+    result = _random_selector(reviewers, issue)
+    print("select_reviewer_by_random", reviewers, ubers, issue.author, result)
+    if result is None:
+        result = _random_selector({u: reviewers[u] for u in ubers}, issue)
+    if result is None:
+        result = issue.author
+    return result
+
+def select_reviewer_by_repo_stats(reviewers, ubers, issue):
+    print("select_reviewer_by_repo_stats", reviewers, ubers, issue.author)
     uri = GITHUB_API_URI + REPO_CONTRIBUTORS_PATH.format(issue.repository)
     r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
     if r.status_code != 200:
-        return reviewer_random_selector(reviewers, ubers, issue)
+        return select_reviewer_by_random(reviewers, ubers, issue)
+
     contributions = 0
     contributors = {}
     for contributor in json.loads(r.text):
         contributions += contributor['contributions']
         contributors[contributor['login']] = contributor['contributions']
     if len(contributors) == 0:
-        return reviewer_random_selector(reviewers, ubers, issue)
+        return select_reviewer_by_random(reviewers, ubers, issue)
     threshold = contributions / len(contributors) * config.repo_lottery_factor
+
     eligible_reviewers = {}
     for reviewer, score in reviewers.items():
         if reviewer not in contributors:
             continue
         if contributors[reviewer] >= threshold:
             eligible_reviewers[reviewer] = score
-    return _random_selector(eligible_reviewers, ubers, reviewers, issue)
+
+    print(eligible_reviewers)
+    if len(eligible_reviewers) == 0:
+        eligible_reviewers = {u: reviewers[u] for u in ubers}
+        ubers = {}
+    return select_reviewer_by_random(eligible_reviewers, ubers, issue)
 

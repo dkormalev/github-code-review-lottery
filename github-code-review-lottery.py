@@ -40,23 +40,33 @@ def main():
     def check_for_new_issues():
         print("Checking for new pull requests at", time.ctime())
         all_issues = issues.fetch_opened_pull_requests()
-        all_issues = list(issues.filter_issues_for_team(all_issues, config.team))
-        print (list(map(lambda i: (i.repository, i.number) , all_issues)))
+        try:
+            all_issues = list(issues.filter_issues_for_team(all_issues, config.team))
+        except requests.exceptions.RequestException:
+            pass
+        else:
+            print (list(map(lambda i: (i.repository, i.number) , all_issues)))
 
-        for issue in issues.filter_issues_to_be_assigned(all_issues):
-            if issue.assignee is None:
-                lottery.select_assignee(issue)
-            else:
-                lottery.increase_reviewer_score(issue.assignee)
-            issue.add_in_review_label()
-            update_result = issue.update_on_server()
-            print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
+            for issue in issues.filter_issues_to_be_assigned(all_issues):
+                try:
+                    if issue.assignee is None:
+                        lottery.select_assignee(issue)
+                    else:
+                        lottery.increase_reviewer_score(issue.assignee)
+                    issue.add_in_review_label()
+                    update_result = issue.update_on_server()
+                    print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
+                except requests.exceptions.RequestException:
+                    pass
 
-        for issue in issues.filter_issues_to_be_checked_for_completed_review(all_issues):
-            if comments.issue_contains_review_done_comment(issue):
-                issue.add_reviewed_label()
-                update_result = issue.update_on_server()
-                print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
+            for issue in issues.filter_issues_to_be_checked_for_completed_review(all_issues):
+                if comments.issue_contains_review_done_comment(issue):
+                    issue.add_reviewed_label()
+                    try:
+                        update_result = issue.update_on_server()
+                        print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
+                    except requests.exceptions.RequestException:
+                        pass
 
         if not config.single_shot:
             scheduler.enter(config.interval_between_checks_in_seconds, 1, check_for_new_issues)

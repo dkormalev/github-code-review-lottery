@@ -93,7 +93,10 @@ def fetch_opened_pull_requests():
     uri = GITHUB_API_URI + (SUBSCRIBED_ISSUES_PATH if config.only_subscribed_issues else ALL_ISSUES_PATH)
     all_issues = []
     while uri is not None:
-        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        try:
+            r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        except requests.exceptions.RequestException:
+            return
         if r.status_code != 200:
             print("Something went wrong", r.status_code)
             return []

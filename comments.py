@@ -27,7 +27,10 @@ def issue_contains_review_done_comment(issue):
     if issue.comments_count == 0:
         return False
     uri = GITHUB_API_URI + COMMENTS_PATH.format(issue.repository, issue.number)
-    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+    try:
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+    except requests.exceptions.RequestException:
+        return False
     if r.status_code != 200:
         print("Something went wrong", r.status_code)
         return False

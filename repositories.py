@@ -54,12 +54,16 @@ repositories = {}
 
 def init_repository(repository):
     global repositories
-    repositories[repository] = Repository(repository)
-    repositories[repository].update_teams()
-    if config.team in repositories[repository].teams:
-        if not labels.create_labels_if_needed(repository):
-            return False
-    return True
+    try:
+        repositories[repository] = Repository(repository)
+        repositories[repository].update_teams()
+        if config.team in repositories[repository].teams:
+            if not labels.create_labels_if_needed(repository):
+                return False
+        return True
+    except:
+        del repositories[repository]
+        raise
 
 def repository_teams(repository):
     if repository in repositories:

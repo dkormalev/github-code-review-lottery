@@ -71,7 +71,7 @@ def select_reviewer_by_repo_stats(reviewers, ubers, issue):
 
     eligible_reviewers = {}
     for reviewer, score in reviewers.items():
-        if reviewer not in contributors:
+        if reviewer not in contributors or reviewer == issue.author:
             continue
         if contributors[reviewer] >= threshold:
             eligible_reviewers[reviewer] = score

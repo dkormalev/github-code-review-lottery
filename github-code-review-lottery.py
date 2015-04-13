@@ -21,6 +21,7 @@
 import sched
 import time
 import daemon
+import requests
 
 import issues
 import config

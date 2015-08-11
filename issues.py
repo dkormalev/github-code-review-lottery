@@ -105,7 +105,7 @@ def fetch_opened_pull_requests():
 
     issues_filler = lambda issue: Issue(issue)
     filtered_issues = filter(lambda issue: issue['state'] == 'open'
-                                            and issue['pull_request']
+                                            and 'pull_request' in issue
                                             and not issue['repository']['fork'],
                              all_issues)
     return map(issues_filler, filtered_issues)

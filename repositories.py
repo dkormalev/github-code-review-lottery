@@ -23,6 +23,10 @@ import json
 from constants import *
 import config
 import labels
+import time
+
+repositories = {}
+denied_repositories = {}
 
 class Repository(object):
     def __init__(self, name):
@@ -43,14 +47,13 @@ class Repository(object):
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'),
                          headers = {'If-None-Match': self._teams_etag})
         if r.status_code != 200 and r.status_code != 304:
+            denied_repositories[self._name] = time.time()
             self._teams_etag = ''
             self._teams = []
             return
         self._teams_etag = r.headers["ETag"]
         if r.status_code == 200:
             self._teams = list(map(lambda r: r['name'], json.loads(r.text)))
-
-repositories = {}
 
 def init_repository(repository):
     global repositories
@@ -67,7 +70,9 @@ def init_repository(repository):
 
 def repository_teams(repository):
     if repository in repositories:
-        repositories[repository].update_teams()
+        #If repository access was denied once - let's not ask about it for an hour
+        if repository not in denied_repositories or time.time() - denied_repositories[repository] > 60 * 60:
+            repositories[repository].update_teams()
     else:
         init_repository(repository)
     return repositories[repository].teams

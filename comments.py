@@ -23,19 +23,27 @@ import json
 from constants import *
 import config
 
+issues_comments_etags = {}
+
 def issue_contains_review_done_comment(issue):
     if issue.comments_count == 0:
         return False
+    comments_headers = {}
+    issue_id = "{}/{}".format(issue.repository, issue.number)
+    if issue_id in issues_comments_etags:
+        comments_headers['If-None-Match'] = issues_comments_etags[issue_id]
     uri = GITHUB_API_URI + COMMENTS_PATH.format(issue.repository, issue.number)
     try:
-        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = comments_headers)
     except requests.exceptions.RequestException:
         return False
-    if r.status_code != 200:
+    if r.status_code == 200 or r.status_code == 304:
+        issues_comments_etags[issue_id] = r.headers["ETag"]
+    else:
         print("Something went wrong", r.status_code)
-        return False
-    for comment in json.loads(r.text):
-        if comment['user']['login'] == issue.assignee and comment['body'].strip() == REVIEW_DONE_COMMENT:
-            return True
+    if r.status_code == 200:
+        for comment in json.loads(r.text):
+            if comment['user']['login'] == issue.assignee and comment['body'].strip() == REVIEW_DONE_COMMENT:
+                return True
     return False
 

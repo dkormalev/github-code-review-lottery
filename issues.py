@@ -94,12 +94,15 @@ def fetch_opened_pull_requests():
     all_issues = []
     while uri is not None:
         try:
-            r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+            r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
         except requests.exceptions.RequestException:
             return []
+        if r.status_code == 304:
+            r = utils.cached_response(uri)
         if r.status_code != 200:
             print("Something went wrong", r.status_code)
             return []
+        utils.cache_response(r)
         all_issues += json.loads(r.text)
         uri = utils.next_page_url(r)
 

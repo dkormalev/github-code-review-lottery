@@ -22,13 +22,17 @@ import requests
 import json
 from constants import *
 import config
+import utils
 
 def current_user_name():
     uri = GITHUB_API_URI + USER_PATH
-    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+    r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
+    if r.status_code == 304:
+        r = utils.cached_response(uri)
     if r.status_code != 200:
         print("Something went wrong", r.status_code)
         return None
+    utils.cache_response(r)
     user = json.loads(r.text)
     return user['login'] if user else None
 

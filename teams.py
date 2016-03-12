@@ -28,10 +28,13 @@ import utils
 def find_team_by_name(team_name):
     uri = GITHUB_API_URI + USER_TEAMS_PATH
     while uri is not None:
-        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
+        if r.status_code == 304:
+            r = utils.cached_response(uri)
         if r.status_code != 200:
             print("Something went wrong", r.status_code)
             return None
+        utils.cache_response(r)
         for team in json.loads(r.text):
             if team_name == team['name']:
                 return team['id']
@@ -43,10 +46,13 @@ def team_members(team_id):
     uri = GITHUB_API_URI + TEAM_MEMBERS_PATH.format(team_id)
     all_users = []
     while uri is not None:
-        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
+        if r.status_code == 304:
+            r = utils.cached_response(uri)
         if r.status_code != 200:
             print("Something went wrong", r.status_code)
             return None
+        utils.cache_response(r)
         all_users += json.loads(r.text)
         uri = utils.next_page_url(r)
 
@@ -57,10 +63,13 @@ def team_repositories(team_id):
     uri = GITHUB_API_URI + TEAM_REPOS_PATH.format(team_id)
     all_repos = []
     while uri is not None:
-        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'))
+        r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
+        if r.status_code == 304:
+            r = utils.cached_response(uri)
         if r.status_code != 200:
             print("Something went wrong", r.status_code)
             return None
+        utils.cache_response(r)
         all_repos += json.loads(r.text)
         uri = utils.next_page_url(r)
 

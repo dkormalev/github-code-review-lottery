@@ -21,8 +21,28 @@
 import requests
 import re
 
+cached_responses = {}
+
 def next_page_url(response):
     if response.status_code < 200 or response.status_code >= 300 or "Link" not in response.headers:
         return None
     next_link = re.search('<([^>]*)>; rel="next"', response.headers["Link"])
     return next_link.group(1) if next_link is not None else None
+
+def cache_response(response, uri=''):
+    if len(uri) == 0:
+        uri = response.url
+    if 'ETag' not in response.headers:
+        remove_response_from_cache(uri)
+        return
+    cached_responses[uri] = response
+
+def caching_request_headers(uri):
+    return {'If-None-Match': cached_responses[uri].headers['ETag']} if uri in cached_responses else {}
+
+def cached_response(uri):
+    return cached_responses[uri] if uri in cached_responses else None
+
+def remove_response_from_cache(uri):
+    if uri in cached_responses:
+        del cached_responses[uri]

@@ -24,6 +24,7 @@ from constants import *
 import config
 import labels
 import time
+import utils
 
 repositories = {}
 denied_repositories = {}
@@ -32,7 +33,6 @@ class Repository(object):
     def __init__(self, name):
         self._name = name
         self._teams = []
-        self._teams_etag = ''
 
     @property
     def name(self):
@@ -45,14 +45,14 @@ class Repository(object):
     def update_teams(self):
         uri = GITHUB_API_URI + REPO_TEAMS_PATH.format(self._name)
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'),
-                         headers = {'If-None-Match': self._teams_etag})
+                         headers = utils.caching_request_headers(uri))
         if r.status_code != 200 and r.status_code != 304:
             denied_repositories[self._name] = time.time()
-            self._teams_etag = ''
+            utils.remove_response_from_cache(uri)
             self._teams = []
             return
-        self._teams_etag = r.headers["ETag"]
         if r.status_code == 200:
+            utils.cache_response(r)
             self._teams = list(map(lambda r: r['name'], json.loads(r.text)))
 
 def init_repository(repository):

@@ -28,10 +28,13 @@ def create_labels_if_needed(repository):
     labels_uri = GITHUB_API_URI + LABELS_PATH.format(repository)
     all_labels = []
     while labels_uri is not None:
-        r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'))
+        r = requests.get(labels_uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(labels_uri))
+        if r.status_code == 304:
+            r = utils.cached_response(uri)
         if r.status_code != 200:
             print("Something went wrong", r.status_code)
             return False
+        utils.cache_response(r)
         all_labels += json.loads(r.text)
         labels_uri = utils.next_page_url(r)
 

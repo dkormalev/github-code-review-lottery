@@ -26,19 +26,12 @@ import lottery_modes
 class Lottery(object):
     def __init__(self):
         self._reviewers = {}
-        self._ubers = []
+        self._reviewers_by_teams = {}
+        self._ubers_by_teams = {}
         self._reviewer_selector = None
 
-    @property
-    def reviewers(self):
-        return self._reviewers
-
-    @property
-    def ubers(self):
-        return self._ubers
-
-    def select_assignee(self, issue):
-        selected = self._reviewer_selector(self._reviewers, self._ubers, issue)
+    def select_assignee(self, issue, team_name):
+        selected = self._reviewer_selector(self._reviewers_by_teams[team_name], self._ubers_by_teams[team_name], issue)
         if selected is None:
             selected = issue.author
         issue.assignee = selected
@@ -57,22 +50,26 @@ class Lottery(object):
         else:
             return False
 
-        team_id = teams.find_team_by_name(config.team)
-        if team_id is None:
-            return False
-        self._reviewers = {reviewer: 0 for reviewer in teams.team_members(team_id)}
-
         uber_team_id = teams.find_team_by_name(config.uber_team)
         if uber_team_id is None:
             return False
-        self._ubers = list(filter(lambda u: u in self._reviewers, teams.team_members(uber_team_id)))
+        full_uber_team = list(teams.team_members(uber_team_id))
 
-        repositories_list = list(teams.team_repositories(team_id))
+        repositories_list = []
 
-        print(self._reviewers, self._ubers)
+        for team_name in config.teams:
+            team_id = teams.find_team_by_name(team_name)
+            if team_id is None:
+                return False
+            self._reviewers_by_teams[team_name] = list(teams.team_members(team_id))
+            self._reviewers.update({reviewer: 0 for reviewer in self._reviewers_by_teams[team_name]})
+            self._ubers_by_teams[team_name] = list(filter(lambda u: u in self._reviewers_by_teams[team_name], full_uber_team))
+            repositories_list.extend(list(teams.team_repositories(team_id)))
+
         print(repositories_list)
-
         for repository in repositories_list:
             if not repositories.init_repository(repository):
                 return False
+
+        print(self._reviewers_by_teams, self._ubers_by_teams)
         return True

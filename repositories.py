@@ -56,11 +56,10 @@ class Repository(object):
             self._teams = list(map(lambda r: r['name'], json.loads(r.text)))
 
 def init_repository(repository):
-    global repositories
     try:
         repositories[repository] = Repository(repository)
         repositories[repository].update_teams()
-        if config.team in repositories[repository].teams:
+        if len(config.teams.intersection(repositories[repository].teams)) > 0:
             if not labels.create_labels_if_needed(repository):
                 return False
         return True

@@ -40,18 +40,24 @@ def main():
 
     def check_for_new_issues():
         print("Checking for new pull requests at", time.ctime())
-        all_issues = issues.fetch_opened_pull_requests()
-        try:
-            all_issues = list(issues.filter_issues_for_team(all_issues, config.team))
-        except requests.exceptions.RequestException:
-            pass
-        else:
-            print (list(map(lambda i: (i.repository, i.number) , all_issues)))
+        all_issues = list(issues.fetch_opened_pull_requests())
+        issues_by_teams = {}
 
-            for issue in issues.filter_issues_to_be_assigned(all_issues):
+        for team_name in config.teams:
+            try:
+                team_issues = list(issues.filter_issues_for_team(all_issues, team_name))
+                issues_by_teams[team_name] = team_issues
+                all_issues = list(filter(lambda i: i not in team_issues, all_issues))
+            except requests.exceptions.RequestException:
+                pass
+
+        for team_name in issues_by_teams:
+            team_issues = issues_by_teams[team_name]
+            print ("Team", team_name, "has:", list(map(lambda i: (i.repository, i.number) , team_issues)))
+            for issue in issues.filter_issues_to_be_assigned(team_issues):
                 try:
                     if issue.assignee is None:
-                        lottery.select_assignee(issue)
+                        lottery.select_assignee(issue, team_name)
                     else:
                         lottery.increase_reviewer_score(issue.assignee)
                     issue.add_in_review_label()
@@ -60,7 +66,7 @@ def main():
                 except requests.exceptions.RequestException:
                     pass
 
-            for issue in issues.filter_issues_to_be_checked_for_completed_review(all_issues):
+            for issue in issues.filter_issues_to_be_checked_for_completed_review(team_issues):
                 if comments.issue_contains_review_done_comment(issue):
                     issue.add_reviewed_label()
                     try:

@@ -34,6 +34,6 @@ REPO_TEAMS_PATH = '/repos/{}/teams?per_page=100'
 
 REPO_CONTRIBUTORS_PATH = '/repos/{}/contributors?per_page=100'
 
-IN_REVIEW_LABEL = "In Review"
-REVIEWED_LABEL = "Reviewed"
-REVIEW_DONE_COMMENT = "+1"
+IN_REVIEW_LABEL = 'In Review'
+REVIEWED_LABEL = 'Reviewed'
+REVIEW_DONE_COMMENT = '+1'

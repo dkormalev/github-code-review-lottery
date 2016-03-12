@@ -100,7 +100,7 @@ def fetch_opened_pull_requests():
         if r.status_code == 304:
             r = utils.cached_response(uri)
         if r.status_code != 200:
-            print("Something went wrong", r.status_code)
+            print('Something went wrong', r.status_code)
             return []
         utils.cache_response(r)
         all_issues += json.loads(r.text)

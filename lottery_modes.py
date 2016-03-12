@@ -27,7 +27,7 @@ import random
 import utils
 
 def _random_selector(reviewers, issue):
-    print("_random_selector", reviewers, issue.author)
+    print('_random_selector', reviewers, issue.author)
     if len(reviewers) == 0:
         return None
     min_score = -1
@@ -39,7 +39,7 @@ def _random_selector(reviewers, issue):
             min_score, min_reviewers = score, [reviewer]
         elif score == min_score:
             min_reviewers.append(reviewer)
-    print("_random_selector 2", min_reviewers)
+    print('_random_selector 2', min_reviewers)
     if len(min_reviewers) == 0:
         return None
     return random.choice(min_reviewers)
@@ -47,7 +47,7 @@ def _random_selector(reviewers, issue):
 
 def select_reviewer_by_random(reviewers, ubers, issue):
     result = _random_selector(reviewers, issue)
-    print("select_reviewer_by_random", reviewers, ubers, issue.author, result)
+    print('select_reviewer_by_random', reviewers, ubers, issue.author, result)
     if result is None:
         result = _random_selector({u: reviewers[u] for u in ubers}, issue)
     if result is None:
@@ -55,7 +55,7 @@ def select_reviewer_by_random(reviewers, ubers, issue):
     return result
 
 def select_reviewer_by_repo_stats(reviewers, ubers, issue):
-    print("select_reviewer_by_repo_stats", reviewers, ubers, issue.author)
+    print('select_reviewer_by_repo_stats', reviewers, ubers, issue.author)
     uri = GITHUB_API_URI + REPO_CONTRIBUTORS_PATH.format(issue.repository)
     r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
     if r.status_code == 304:

@@ -41,6 +41,6 @@ def issue_contains_review_done_comment(issue):
             if comment['user']['login'] == issue.assignee and comment['body'].strip() == REVIEW_DONE_COMMENT:
                 return True
     else:
-        print("Something went wrong", r.status_code)
+        print('Something went wrong', r.status_code)
     return False
 

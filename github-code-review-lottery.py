@@ -34,12 +34,12 @@ def main():
     if not lottery.read_config():
         print("Can't init script, exiting now")
         return
-    print("Init done, starting lottery")
+    print('Init done, starting lottery')
 
     scheduler = sched.scheduler(time.time, time.sleep)
 
     def check_for_new_issues():
-        print("Checking for new pull requests at", time.ctime())
+        print('Checking for new pull requests at', time.ctime())
         all_issues = list(issues.fetch_opened_pull_requests())
         issues_by_teams = {}
 
@@ -53,7 +53,7 @@ def main():
 
         for team_name in issues_by_teams:
             team_issues = issues_by_teams[team_name]
-            print ("Team", team_name, "has:", list(map(lambda i: (i.repository, i.number) , team_issues)))
+            print ('Team', team_name, 'has:', list(map(lambda i: (i.repository, i.number) , team_issues)))
             for issue in issues.filter_issues_to_be_assigned(team_issues):
                 try:
                     if issue.assignee is None:
@@ -62,7 +62,7 @@ def main():
                         lottery.increase_reviewer_score(issue.assignee)
                     issue.add_in_review_label()
                     update_result = issue.update_on_server()
-                    print("Added for review:", issue.repository, issue.number, issue.assignee, update_result)
+                    print('Added for review:', issue.repository, issue.number, issue.assignee, update_result)
                 except requests.exceptions.RequestException:
                     pass
 
@@ -71,7 +71,7 @@ def main():
                     issue.add_reviewed_label()
                     try:
                         update_result = issue.update_on_server()
-                        print("Review completed:", issue.repository, issue.number, issue.assignee, update_result)
+                        print('Review completed:', issue.repository, issue.number, issue.assignee, update_result)
                     except requests.exceptions.RequestException:
                         pass
 

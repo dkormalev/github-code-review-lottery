@@ -32,7 +32,7 @@ def find_team_by_name(team_name):
         if r.status_code == 304:
             r = utils.cached_response(uri)
         if r.status_code != 200:
-            print("Something went wrong", r.status_code)
+            print('Something went wrong', r.status_code)
             return None
         utils.cache_response(r)
         for team in json.loads(r.text):
@@ -50,7 +50,7 @@ def team_members(team_id):
         if r.status_code == 304:
             r = utils.cached_response(uri)
         if r.status_code != 200:
-            print("Something went wrong", r.status_code)
+            print('Something went wrong', r.status_code)
             return None
         utils.cache_response(r)
         all_users += json.loads(r.text)
@@ -67,7 +67,7 @@ def team_repositories(team_id):
         if r.status_code == 304:
             r = utils.cached_response(uri)
         if r.status_code != 200:
-            print("Something went wrong", r.status_code)
+            print('Something went wrong', r.status_code)
             return None
         utils.cache_response(r)
         all_repos += json.loads(r.text)

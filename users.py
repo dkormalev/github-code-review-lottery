@@ -30,7 +30,7 @@ def current_user_name():
     if r.status_code == 304:
         r = utils.cached_response(uri)
     if r.status_code != 200:
-        print("Something went wrong", r.status_code)
+        print('Something went wrong', r.status_code)
         return None
     utils.cache_response(r)
     user = json.loads(r.text)

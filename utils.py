@@ -24,9 +24,9 @@ import re
 cached_responses = {}
 
 def next_page_url(response):
-    if response.status_code < 200 or response.status_code >= 300 or "Link" not in response.headers:
+    if response.status_code < 200 or response.status_code >= 300 or 'Link' not in response.headers:
         return None
-    next_link = re.search('<([^>]*)>; rel="next"', response.headers["Link"])
+    next_link = re.search('<([^>]*)>; rel="next"', response.headers['Link'])
     return next_link.group(1) if next_link is not None else None
 
 def cache_response(response, uri=''):

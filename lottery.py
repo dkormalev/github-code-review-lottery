@@ -66,10 +66,11 @@ class Lottery(object):
             self._ubers_by_teams[team_name] = list(filter(lambda u: u in self._reviewers_by_teams[team_name], full_uber_team))
             repositories_list.extend(list(teams.team_repositories(team_id)))
 
-        print(repositories_list)
+        print('Repositories found:', repositories_list)
         for repository in repositories_list:
             if not repositories.init_repository(repository):
                 return False
 
-        print(self._reviewers_by_teams, self._ubers_by_teams)
+        print('Reviewers:', self._reviewers_by_teams)
+        print('Ubers:', self._ubers_by_teams)
         return True

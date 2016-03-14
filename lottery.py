@@ -31,7 +31,9 @@ class Lottery(object):
         self._reviewer_selector = None
 
     def select_assignee(self, issue, team_name):
-        selected = self._reviewer_selector(self._reviewers_by_teams[team_name], self._ubers_by_teams[team_name], issue)
+        selected = self._reviewer_selector(dict(map(lambda r: (r, self._reviewers[r] if r in self._reviewers else 0),
+                                                    self._reviewers_by_teams[team_name])),
+                                           self._ubers_by_teams[team_name], issue)
         if selected is None:
             selected = issue.author
         issue.assignee = selected

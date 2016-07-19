@@ -14,6 +14,7 @@ ToDo
 * git statistics usage to select proper reviewer
 * consider configparser instead of .py file
 * Refactor to hide github pagination in single fetch method
+* Think about teams members re-fetch
 
 Disclaimer
 ----------

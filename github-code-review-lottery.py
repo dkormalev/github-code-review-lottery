@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015 Denis Kormalev <kormalev.denis@gmail.com>
+# Copyright (c) 2016 Aliya Iskhakova <iskhakova.alija@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,10 +27,12 @@ import requests
 import issues
 import config
 import comments
+import database_helper
 
 from lottery import Lottery
 
 def main():
+    database_helper.init_database()
     lottery = Lottery()
     if not lottery.read_config():
         print("Can't init script, exiting now")

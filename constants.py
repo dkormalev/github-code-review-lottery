@@ -19,7 +19,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 GITHUB_API_URI = 'https://api.github.com'
-SUSCRIBED_ISSUES_PATH = '/issues?filter=subscribed&per_page=100'
+SUBSCRIBED_ISSUES_PATH = '/issues?filter=subscribed&per_page=100'
 ALL_ISSUES_PATH = '/issues?filter=all&per_page=100'
 SINGLE_ISSUE_PATH= '/repos/{}/issues/{}'
 LABELS_PATH = '/repos/{}/labels?per_page=100'

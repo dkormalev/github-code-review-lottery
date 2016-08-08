@@ -29,12 +29,15 @@ def find_team_by_name(team_name):
     uri = GITHUB_API_URI + USER_TEAMS_PATH
     while uri is not None:
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
-        if r.status_code == 304:
-            r = utils.cached_response(uri)
+
+        if r.status_code == 200:
+            utils.cache_response(r)
+        elif r.status_code == 304:
+            r = utils.fetch_cached_response(uri)
         if r.status_code != 200:
-            print('Something went wrong', r.status_code)
+            print('Unable to find team by name. API response code: ', r.status_code)
             return None
-        utils.cache_response(r)
+
         for team in json.loads(r.text):
             if team_name == team['name']:
                 return team['id']
@@ -47,12 +50,15 @@ def team_members(team_id):
     all_users = []
     while uri is not None:
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
-        if r.status_code == 304:
-            r = utils.cached_response(uri)
+
+        if r.status_code == 200:
+            utils.cache_response(r)
+        elif r.status_code == 304:
+            r = utils.fetch_cached_response(uri)
         if r.status_code != 200:
-            print('Something went wrong', r.status_code)
+            print('Unable to find team members by team ID. API response code: ', r.status_code)
             return None
-        utils.cache_response(r)
+
         all_users += json.loads(r.text)
         uri = utils.next_page_url(r)
 
@@ -64,12 +70,15 @@ def team_repositories(team_id):
     all_repos = []
     while uri is not None:
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
-        if r.status_code == 304:
-            r = utils.cached_response(uri)
+
+        if r.status_code == 200:
+            utils.cache_response(r)
+        elif r.status_code == 304:
+            r = utils.fetch_cached_response(uri)
         if r.status_code != 200:
-            print('Something went wrong', r.status_code)
+            print('Unable to find team repositories by name. API response code: ', r.status_code)
             return None
-        utils.cache_response(r)
+
         all_repos += json.loads(r.text)
         uri = utils.next_page_url(r)
 

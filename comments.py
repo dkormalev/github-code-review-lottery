@@ -27,20 +27,24 @@ import utils
 def issue_contains_review_done_comment(issue):
     if issue.comments_count == 0:
         return False
-    comments_headers = {}
+
     uri = GITHUB_API_URI + COMMENTS_PATH.format(issue.repository, issue.number)
     try:
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'), headers = utils.caching_request_headers(uri))
     except requests.exceptions.RequestException:
         return False
-    if r.status_code == 304:
-        r = utils.cached_response(uri)
+
     if r.status_code == 200:
         utils.cache_response(r)
-        for comment in json.loads(r.text):
-            if comment['user']['login'] == issue.assignee and comment['body'].strip() == REVIEW_DONE_COMMENT:
-                return True
-    else:
+    elif r.status_code == 304:
+        r = utils.fetch_cached_response(uri)
+    if r.status_code != 200:
         print('Something went wrong', r.status_code)
+        return False
+
+    for comment in json.loads(r.text):
+        if comment['user']['login'] == issue.assignee and comment['body'].strip() == REVIEW_DONE_COMMENT:
+            return True
+
     return False
 

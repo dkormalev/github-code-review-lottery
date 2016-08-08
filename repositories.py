@@ -46,14 +46,18 @@ class Repository(object):
         uri = GITHUB_API_URI + REPO_TEAMS_PATH.format(self._name)
         r = requests.get(uri, auth = (config.api_token, 'x-oauth-basic'),
                          headers = utils.caching_request_headers(uri))
-        if r.status_code != 200 and r.status_code != 304:
+
+        if r.status_code == 200:
+            utils.cache_response(r)
+        elif r.status_code == 304:
+            r = utils.fetch_cached_response(uri)
+        if r.status_code != 200:
             denied_repositories[self._name] = time.time()
             utils.remove_response_from_cache(uri)
             self._teams = []
             return
-        if r.status_code == 200:
-            utils.cache_response(r)
-            self._teams = list(map(lambda r: r['name'], json.loads(r.text)))
+
+        self._teams = list(map(lambda r: r['name'], json.loads(r.text)))
 
 def init_repository(repository):
     try:
